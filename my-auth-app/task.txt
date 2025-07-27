@@ -1,0 +1,156 @@
+# 專案執行指令與步驟 (React + Vite + TailwindCSS + Supabase + Vercel)
+
+# --- Part 1: 本地開發環境設置 ---
+
+# 1. 使用 Vite 建立 React 專案 (選擇 react-ts 或 react)
+npm create vite@latest my-auth-app -- --template react-ts
+cd my-auth-app
+
+# 2. 安裝必要的 npm 套件
+#    - TailwindCSS 相關 (指定 3.4 版本)
+npm install -D tailwindcss@3.4.4 postcss autoprefixer
+#    - Supabase 用戶端
+npm install @supabase/supabase-js
+#    - React Router (用於頁面導航)
+npm install react-router-dom
+
+# 3. 初始化 TailwindCSS
+npx tailwindcss init -p
+
+# 4. 設定 `tailwind.config.js`
+#    打開 `tailwind.config.js` 檔案，修改 content 屬性，使其掃描你的元件和頁面檔案
+#    content: [
+#      "./index.html",
+#      "./src/**/*.{js,ts,jsx,tsx}",
+#    ],
+
+# 5. 在主 CSS 檔案中引入 Tailwind 指令
+#    打開 `src/index.css`，清空內容並貼上以下程式碼：
+#    @tailwind base;
+#    @tailwind components;
+#    @tailwind utilities;
+
+# 6. 建立 `.env` 檔案來存放敏感金鑰
+#    在專案根目錄建立一個名為 `.env` 的檔案，並加入以下內容 (值先留空):
+#    VITE_SUPABASE_URL=
+#    VITE_SUPABASE_ANON_KEY=
+
+# 7. 將 `.env` 加入 `.gitignore` 確保不會被上傳到 Git
+#    打開 `.gitignore` 檔案，在檔案末尾加上一行：
+#    .env
+
+
+# --- Part 2: Supabase 後端設置 ---
+
+# 1. 前往 https://supabase.com/ 註冊並建立一個新專案。
+# 2. 進入你的專案儀表板。
+# 3. 前往 Settings > API。
+# 4. 複製 "Project URL" 和 "Project API Keys" 中的 "anon" "public" 金鑰。
+# 5. 將這兩個值貼到你本地的 `.env` 檔案中對應的變數。
+#    VITE_SUPABASE_URL=YOUR_SUPABASE_URL
+#    VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+# 6. 前往 Authentication > Providers。
+# 7. 啟用 "Email" 提供者 (預設應為啟用)。
+# 8. 啟用 "Google" 提供者。
+#    a. 你會看到一個 "Redirect URL" (回呼網址)，複製它。格式類似：https://<project-ref>.supabase.co/auth/v1/callback
+#    b. 前往 Google Cloud Console (https://console.cloud.google.com/)。
+#    c. 建立一個新專案。
+#    d. 前往 "API 和服務" > "憑證"。
+#    e. 點擊 "建立憑證" > "OAuth 用戶端 ID"。
+#    f. 設定應用程式類型為 "網頁應用程式"。
+#    g. 在 "已授權的重新導向 URI" 中，貼上剛才從 Supabase 複製的回呼網址。
+#    h. 建立後，你會得到一個 "用戶端 ID" 和 "用戶端密鑰"。
+#    i. 回到 Supabase 的 Google 提供者設定頁面，將這兩個值貼上並儲存。
+
+
+# --- Part 3: React 程式碼實現 ---
+
+# 1. 建立 Supabase Client
+#    在 `src` 目錄下建立 `supabaseClient.ts`
+/*
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+*/
+
+# 2. 建立頁面元件
+#    在 `src` 下建立 `pages` 資料夾，並新增 `Login.tsx` 和 `Dashboard.tsx`。
+
+# 3. 實作登入頁面 (`src/pages/Login.tsx`)
+#    - 建立兩個 input (email, password) 的 state。
+#    - 建立 Email/密碼登入/註冊的 async 函式，呼叫 `supabase.auth.signInWithPassword` 或 `supabase.auth.signUp`。
+#    - 建立 Google 登入的函式，呼叫 `supabase.auth.signInWithOAuth({ provider: 'google' })`。
+#    - 使用 TailwindCSS 設計 UI。
+
+# 4. 實作儀表板頁面 (`src/pages/Dashboard.tsx`)
+#    - 顯示歡迎訊息和使用者 Email。
+#    - 建立一個登出按鈕，點擊時呼叫 `supabase.auth.signOut()`。
+
+# 5. 設定身份驗證狀態管理 (使用 Context API)
+#    - 在 `src` 下建立 `context/AuthContext.tsx`。
+#    - 建立一個 `AuthContext` 來儲存 `session`。
+#    - 建立一個 `AuthProvider` 元件，使用 `useState` 和 `useEffect` 監聽 `supabase.auth.onAuthStateChange` 來更新 session 狀態。
+#    - `AuthProvider` 將 session 和 user 資訊提供給所有子元件。
+
+# 6. 建立受保護的路由元件
+#    - 建立一個 `ProtectedRoute.tsx` 元件。
+#    - 該元件檢查 `AuthContext` 中是否有使用者 session。
+#    - 如果沒有 session，使用 `<Navigate to="/login" />` 重新導向。
+#    - 如果有 session，則渲染子元件 (`<Outlet />`)。
+
+# 7. 設定路由 (`src/App.tsx`)
+#    - 使用 `react-router-dom` 的 `createBrowserRouter`。
+#    - 將整個應用程式包裹在 `AuthProvider` 內。
+#    - 設定路由：
+#      - `/login` 對應 `Login` 元件。
+#      - `/` (根路徑) 對應受保護的 `Dashboard` 元件。
+/*
+import { AuthProvider } from './context/AuthContext';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+
+const router = createBrowserRouter([
+  { path: "/login", element: <Login /> },
+  { 
+    path: "/", 
+    element: <ProtectedRoute />,
+    children: [
+      { path: "/", element: <Dashboard /> }
+    ]
+  },
+]);
+
+function App() {
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
+}
+export default App;
+*/
+
+# --- Part 4: 部署到 Vercel ---
+
+# 1. 將你的專案推送到 GitHub/GitLab/Bitbucket。
+#    git init
+#    git add .
+#    git commit -m "Initial commit with auth setup"
+#    git remote add origin YOUR_GIT_REPOSITORY_URL
+#    git push -u origin main
+
+# 2. 前往 https://vercel.com/ 註冊並登入。
+# 3. 點擊 "Add New..." > "Project"。
+# 4. 從你的 Git 提供者匯入剛剛推送的專案。
+# 5. Vercel 會自動偵測到這是一個 Vite 專案，設定應是正確的。
+# 6. **最重要的一步：** 前往專案的 Settings > Environment Variables。
+# 7. 加入你在 `.env` 檔案中的那兩個 Supabase 環境變數：
+#    - `VITE_SUPABASE_URL`
+#    - `VITE_SUPABASE_ANON_KEY`
+# 8. 點擊 "Deploy"。Vercel 會開始建置並部署你的應用程式。
+# 9. 部署完成後，你會得到一個公開的 URL。專案上線！
